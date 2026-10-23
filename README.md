@@ -1,16 +1,62 @@
 # YellowKey
 YellowKey Bitlocker Bypass Vulnerability
 
-How to reproduce : 
-1. Copy the FsTx folder to "**YourUSBStick:**\System Volume Information\FsTx" as is and make sure to use a filesystem that's compatible with Windows (NTFS is preferable but I think FAT32/exFAT should work as well). Funny thing is, the vulnerability is extremely convenient, you don't even need to plug an external storage device, you can just pull out the disk, copy the files in the EFI partition, put it back and it will still work. That's how bad it is.
-2. Plug the USB stick in your target windows computer with bitlocker protection turned on.
-3. Reboot to Windows Recovery Environment Agent (you can do that by holding SHIFT and clicking on the restart button using your mouse)
-4. Once you click on the restart button, lift your finger off the SHIFT key and hold CRTL and do NOT lift your finger off it.
-5. If you did everything properly, a shell will spawn with unrestricted access to the bitlocker protected volume.
+```markdown
+# BitLocker Protection Bypass via FsTx in System Volume Information
+
+## Summary
+
+This document describes a reproducible method for bypassing BitLocker volume protection by leveraging the Windows Recovery Environment (WinRE) and a crafted `FsTx` directory placed within the `System Volume Information` folder. Notably, the technique does not require an external storage device; the payload can be staged on the EFI system partition of the target disk itself, which significantly lowers the operational barrier and broadens the exposure surface.
+
+## Severity
+
+**High** — Local bypass of BitLocker at-rest protection guarantees. The technique is operationally trivial and does not require specialized tooling or external hardware beyond initial staging.
+
+## Prerequisites
+
+- A filesystem compatible with Windows (NTFS preferred; FAT32/exFAT believed to be functional).
+- A target Windows system with BitLocker protection enabled.
+- Physical or logical access sufficient to modify the EFI system partition or to attach a removable device.
+
+## Reproduction Steps
+
+### 1. Stage the payload
+
+Copy the `FsTx` folder verbatim to:
+
+```
+<TargetVolume>:\System Volume Information\FsTx
+```
+
+This can be accomplished either by writing to a removable USB device or — more critically — by directly modifying the EFI partition of the target disk (e.g., removing the disk, copying the files into the EFI partition, and reinstalling it). The latter path demonstrates that the vulnerability does not depend on an external device being present at boot time, which materially elevates its severity.
+
+### 2. Attach the device (if applicable)
+
+Insert the prepared USB device into the target Windows system while BitLocker protection is active.
+
+### 3. Enter the Windows Recovery Environment (WinRE)
+
+Reboot into the WinRE agent — for example, by holding `SHIFT` while selecting the Restart option via the mouse.
+
+### 4. Trigger the shell-spawn condition
+
+Upon clicking Restart, release the `SHIFT` key and immediately hold `CTRL`, keeping it depressed throughout the boot sequence. **Do not release the key.**
+
+### 5. Observe the result
+
+If the sequence is performed correctly, a command shell is spawned with unrestricted access to the BitLocker-protected volume, effectively bypassing the volume's encryption boundary.
+
+## Assessment
+
+The ability to stage the payload directly on the EFI partition — without an attached removable device — indicates a design-level weakness in the WinRE / `System Volume Information` handling path rather than a configuration-dependent issue. This should be treated as a high-severity local bypass of BitLocker's at-rest protection guarantees.
+
+## Disclaimer
+
+This material is provided for security research and defensive purposes only. Do not use against systems you do not own or have explicit authorization to test.
+```
 
 <img width="1370" height="777" alt="shell" src="https://github.com/user-attachments/assets/eda6c823-4a6b-4aec-bad2-b9afad640dd6" />
 
 
-Now why would I say this is a **backdoor** ? The component that is responsible for this bug is not present anywhere (even in the internet) except inside WinRE image and what makes it raise suspicions is the fact that the exact same component is also present with the exact same name in a normal windows installation but without the functionalities that trigger the bitlocker bypass issue. Why ? I just can't come up with an explanation beside the fact that this was intentional. Also for whatever reason, only windows 11 (+Server 2022/2027) are affect, windows 10 is not.
 
-A huge thanks to MORSE, MSTIC and Microsoft GHOST for making this public disclosure possible ;)
+Credits to [@sweetsky123](https://github.com/sweetsky123) for these references, & MORSE, MSTIC and Microsoft GHOST for making this public disclosure possible 
